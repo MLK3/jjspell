@@ -1,0 +1,8 @@
+=== JJSpell ===
+
+version 1.0 - 06/jan/2011
+
+- libspell.so currently only works on GNU/Linux systems.
+- You must copy the file "resources/libspell.so" to a system lib folder (like /usr/lib).
+- Copy "lib/jamori.so" in your application lib folder
+- Copy the "resources" folder in your application project folder

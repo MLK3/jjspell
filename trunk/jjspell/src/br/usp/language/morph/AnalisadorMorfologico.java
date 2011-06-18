@@ -33,36 +33,22 @@ public class AnalisadorMorfologico implements MorphologicAnalyser {
 
     private native void loadDic(String path);
 
-    //    public void teste(String lexema){
-    //        String[] resp = consultWordPossibilities(lexema);
-    //        for( String s :  resp)
-    //        System.out.println(s);
-    //        
-    //        tkfromjspellanswer(lexema,consultWord(lexema));
-    //    }
     //private final String strmatcher="\\[wü-ú]+=lex\\(";//usada na separação de tokens
     private final String diacriticos = "àáâãéêóôõçíüú";
-    private final String letras = "\\w"+diacriticos+diacriticos.toUpperCase();
-    
-    
-    private final String strmatcher="\\w+=\\w+?[,\\]]";//usada na separação de tokens
-    private final String strmatcherapprox="=lex\\(";//usada na separação de tokens
-    private final String strmatcherdicword="\\((["+letras+"\\-]+),";
+    private final String letras = "\\w" + diacriticos + diacriticos.toUpperCase();
+
+    private final String strmatcher = "\\w+=\\w+?[,\\]]";//usada na separação de tokens
+    private final String strmatcherapprox = "=lex\\(";//usada na separação de tokens
+    private final String strmatcherdicword = "\\(([" + letras + "\\-]+),";
     //private final String strmatcherdicword="\\(([[:alpha:]ã]+),";
-    
-    
+
     private Reader entrada;
     private BufferedReader br;
-    //InputStreamReader isr;
-    // BufferedReader bufr;
 
     private String buffString = null;
-    private List<String> bufList= new ArrayList<String>();
-    
-    //private native void iniDic(String path);    
-    static {        
-        //System.out.println("ü".codePointAt(0));
-        //System.out.println("ú".codePointAt(0));
+    private List<String> bufList = new ArrayList<String>();
+
+    static {
         String fileseparator = System.getProperty("file.separator");
         // Jamori stands for Jspell Analisador Morfológico Interface
         System.load(System.getProperty("user.dir") + fileseparator + "lib" + fileseparator + "jamori.so");
@@ -77,69 +63,70 @@ public class AnalisadorMorfologico implements MorphologicAnalyser {
     public AnalisadorMorfologico(String dic) {
         loadDic(dic);
     }
-    
+
     public void setInput(Reader reader) {
         this.entrada = reader;
         this.br = new BufferedReader(entrada);
     }
 
     public boolean hasMoreTokens() {
-        if(!bufList.isEmpty())return true;        
-        String x =  getLexemeFromBuf();
-        if(x!=null)        bufList.add(x);
-        return  !bufList.isEmpty();    
-        /*if (this.buffString != null)
+        if (!bufList.isEmpty())
             return true;
-        buffString = getLexemeFromBuf();
-        return buffString != null ? true : false;*/
+        String x = getLexemeFromBuf();
+        if (x != null)
+            bufList.add(x);
+        return !bufList.isEmpty();
+        /*
+         * if (this.buffString != null) return true; buffString = getLexemeFromBuf(); return buffString != null ? true :
+         * false;
+         */
     }
-    
+
     public TokenMorph lookNextToken() {
         //para povoar o buffer. ou não, caso no qual null é retornado
         hasMoreTokens();
         return tkFromJspellAnswer(bufList.get(0), consultWord(bufList.get(0)));
-        
+
         //return tkFromJspellAnswer(buffString, consultWord(buffString));
     }
-    
+
+    /**
+     * Returns the the next TokenMorph. If there are more than one option for the next word, returns the best guess.
+     */
     public TokenMorph getNextToken() {
-        return getNextTokens()[0];
+        TokenMorph[] nextTokens = this.getNextTokens();
+        if (nextTokens != null && nextTokens.length > 0) {
+            return nextTokens[0];
+        }
+        return null;
     }
-    
+
     //retorna as varias possibilidades do proximo token..
     //TODO: mudar o nome!
     public TokenMorph[] getNextTokens() {
         //nesse caso, não devemos tentar pegar o proximo token do buffer de entrada,
         //mas sim da buffString. Seguidamente, essa variável deve ser nulificada
         String lexema;
-        
-        if(!hasMoreTokens()) return null;
-        
+
+        if (!hasMoreTokens())
+            return null;
+
         lexema = bufList.remove(0);
-        
-        /*if (buffString != null) {
-            lexema = new String(buffString);
-            buffString = null;
-        } else {
-            lexema = getLexemeFromBuf();
-        }
-        if (lexema == null)
-            return null;*/
+
+        /*
+         * if (buffString != null) { lexema = new String(buffString); buffString = null; } else { lexema =
+         * getLexemeFromBuf(); } if (lexema == null) return null;
+         */
 
         String[] possibdef = consultWordPossibilities(lexema);
         List<TokenMorph> mp = new ArrayList<TokenMorph>();
 
         for (String s : possibdef) {
-
-            //mp.add(tkFromJspellAnswer(lexema, s));
             mp.add(tkFromJspellAnswer(lexema, s));
-            
-            //System.out.println("ORIGINAL:" + s);
-            //System.out.println(s);
         }
         return mp.toArray(new TokenMorph[0]);//coisa estranha para tipagem 
     }
-    
+
     //Lê do Buffer de entrada (a input string)
     private String getLexemeFromBuf() {
         String lexema = "";
@@ -156,12 +143,12 @@ public class AnalisadorMorfologico implements MorphologicAnalyser {
         }
         return lexema.length() > 0 ? lexema : null;
     }
-    
+
     private TokenMorph tkFromJspellAnswer(String lexeme, String originalDef) {
         Map<String, String> mapa = new HashMap<String, String>();
         boolean approx = false;
-        String dicWord=null;        
-        
+        String dicWord = null;
+
         //for 'processing' Jpell's answer:
         Pattern pattern = Pattern.compile(strmatcher);
         Matcher matcher = pattern.matcher(originalDef);
@@ -175,10 +162,6 @@ public class AnalisadorMorfologico implements MorphologicAnalyser {
             int indice = t.indexOf('='); //used in line below            
             mapa.put(t.substring(0, indice), t.substring(indice + 1));//breaks strs in pairs like ("dn","s"),("cat,"v") etc.
 
-            //System.out.println(t);
-            //System.out.println(t.substring(0, indice));
-            //System.out.println(t.substring(indice+1));
-            
             //found = true;
         }
 
@@ -193,8 +176,8 @@ public class AnalisadorMorfologico implements MorphologicAnalyser {
         matcher = pattern.matcher(originalDef);
 
         if (matcher.find())
-            dicWord=matcher.group(1);
-        
-        return new TokenMorph(lexeme, originalDef, dicWord,mapa, approx);
+            dicWord = matcher.group(1);
+
+        return new TokenMorph(lexeme, originalDef, dicWord, mapa, approx);
     }
 }
